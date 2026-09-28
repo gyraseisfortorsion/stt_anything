@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Keyword lab · local audio demo</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Keyword lab home"
+        ><span class="brand-icon">▥</span> Keyword <b>lab</b></a
+      ><span class="local"><i></i> Runs on your computer</span>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <p class="eyebrow">AUDIO → KEYWORDS → TIMESTAMPS</p>
+          <h1>Find the words that matter.</h1>
+          <p>Build a dictionary. Record a clip. See where your terms appear.</p>
+        </div>
+        <span class="version">LOCAL DEMO / 01</span>
+      </div>
+      <div id="error" class="error" role="alert" hidden></div>
+      <div class="layout">
+        <aside class="panel dictionary">
+          <div class="panel-title">
+            <span class="step">01</span>
+            <div>
+              <h2>Your dictionary</h2>
+              <p>One language per index</p>
+            </div>
+            <button id="sample" class="text-button">Use pharma sample</button>
+          </div>
+          <div class="fields">
+            <label
+              >Dictionary name<input
+                id="name"
+                value="Russian pharma"
+                maxlength="80" /></label
+            ><label
+              >Language<select id="language">
+                <option value="ru">Russian / Русский</option>
+                <option value="en">English</option>
+              </select></label
+            >
+          </div>
+          <div class="terms-heading">
+            <span>Drug or keyword <small id="term-count"></small></span
+            ><button id="import-toggle" class="text-button">
+              Import list ↗
+            </button>
+          </div>
+          <div id="import-panel" class="import-panel" hidden>
+            <label for="import-text">Paste words, JSON, JSONL, or CSV</label
+            ><textarea
+              id="import-text"
+              rows="5"
+              placeholder='[{"name":"Аспирин","language":"ru"}]'
+            ></textarea>
+            <div class="button-row">
+              <button id="import-apply" class="secondary small">
+                Use this list</button
+              ><label class="text-button file-label"
+                >Choose file<input
+                  id="dictionary-file"
+                  type="file"
+                  accept=".json,.jsonl,.csv,.txt"
+                  hidden
+              /></label>
+            </div>
+            <p class="hint">
+              CSV header: name,language. Separate aliases with semicolons.
+            </p>
+          </div>
+          <div id="terms" class="terms"></div>
+          <button id="add-term" class="add-button">+ Add a term</button>
+          <div class="divider"></div>
+          <div class="panel-title">
+            <span class="step">02</span>
+            <div>
+              <h2>Build your index</h2>
+              <p>Choose how audio is represented</p>
+            </div>
+          </div>
+          <label class="model-label"
+            >Encoder<select id="encoder"></select
+          ></label>
+          <p id="encoder-hint" class="hint"></p>
+          <p id="readiness" class="readiness"></p>
+          <details id="advanced">
+            <summary>Index options</summary>
+            <div class="fields advanced-fields">
+              <label
+                >Strong threshold<input
+                  id="strong"
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.01" /></label
+              ><label
+                >Possible threshold<input
+                  id="possible"
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.01"
+              /></label>
+            </div>
+            <label
+              >Occurrences per pronunciation<select id="top-k">
+                <option value="3">3 · recommended</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+              </select></label
+            >
+            <p id="lookup-hint" class="hint"></p>
+            <label class="checkbox"
+              ><input type="checkbox" id="downloads" /> Download missing models
+              and voices</label
+            >
+            <p class="hint">
+              Default thresholds are starting values. Calibrate with your own
+              recordings.
+            </p>
+          </details>
+          <button id="build" class="primary wide">
+            Build index <span>→</span>
+          </button>
+          <div id="index-progress" class="progress-box" hidden>
+            <div>
+              <span id="index-message" role="status"></span
+              ><b id="index-percent"></b>
+            </div>
+            <progress id="index-bar" max="100" value="0"></progress>
+          </div>
+        </aside>
+        <section class="workspace">
+          <div class="panel recording">
+            <div class="panel-title">
+              <span class="step">03</span>
+              <div>
+                <h2>Listen for your terms</h2>
+                <p>Record up to two minutes, or upload an audio file</p>
+              </div>
+              <span id="ready-chip" class="chip">No index yet</span>
+            </div>
+            <p id="active-warning" class="detection-advice" hidden></p>
+            <label class="saved-label"
+              >Active index<select id="saved-index">
+                <option value="">Build an index to begin</option>
+              </select></label
+            >
+            <div id="record-zone" class="record-zone">
+              <div id="record-icon" class="mic-icon">◉</div>
+              <h3 id="record-title">Your next recording starts here</h3>
+              <p id="record-subtitle">
+                Build or select an index, then press Record.
+              </p>
+              <canvas
+                id="live-wave"
+                height="44"
+                aria-label="Live microphone waveform"
+                hidden
+              ></canvas>
+              <div class="record-actions">
+                <button id="record" class="primary" disabled>
+                  <span>●</span> Record audio</button
+                ><label id="upload-label" class="secondary file-label disabled"
+                  >↑ Upload audio<input
+                    id="audio-file"
+                    type="file"
+                    accept="audio/*,.ogg,.m4a,.webm"
+                    hidden
+                    disabled
+                /></label>
+              </div>
+              <p class="hint">
+                Audio is processed locally. No transcription or API key.
+              </p>
+            </div>
+            <div id="run-progress" class="progress-box" hidden>
+              <div>
+                <span id="run-message" role="status"></span
+                ><b id="run-percent"></b>
+              </div>
+              <progress id="run-bar" max="100" value="0"></progress>
+            </div>
+          </div>
+          <div id="results" class="panel results" hidden>
+            <div class="panel-title">
+              <div>
+                <p class="eyebrow">DETECTION RESULTS</p>
+                <h2>Your audio, mapped.</h2>
+              </div>
+              <button id="download" class="secondary small">↓ Save JSON</button>
+            </div>
+            <div id="result-meta" class="result-meta"></div>
+            <div class="detection-advice">
+              <p id="detection-advice" role="status"></p>
+              <div class="button-row">
+                <button id="try-encoder" class="secondary small" hidden>
+                  Try recommended encoder on this clip
+                </button>
+                <button id="reanalyze" class="secondary small" hidden>
+                  Analyze this clip with the active index
+                </button>
+              </div>
+            </div>
+            <div class="wave-shell">
+              <div
+                id="wave-container"
+                class="wave-container"
+                tabindex="0"
+                role="slider"
+                aria-label="Audio position"
+                aria-valuemin="0"
+                aria-valuenow="0"
+              >
+                <canvas id="waveform" height="150"></canvas>
+                <div id="markers" class="markers"></div>
+                <div id="playhead" class="playhead"></div>
+              </div>
+              <div id="time-axis" class="time-axis"></div>
+            </div>
+            <audio id="playback" controls preload="auto"></audio>
+            <div class="results-toolbar">
+              <div id="filters" class="filters">
+                <button data-tier="all" class="active">
+                  All <span id="all-count">0</span></button
+                ><button data-tier="strong">
+                  Strong <span id="strong-count">0</span></button
+                ><button data-tier="possible">
+                  Possible <span id="possible-count">0</span>
+                </button>
+              </div>
+              <label
+                >Sort<select id="sort">
+                  <option value="time">By time</option>
+                  <option value="score">By score</option>
+                </select></label
+              >
+            </div>
+            <div id="hits" class="hits"></div>
+            <p class="score-note">
+              Amber → teal reflects increasing match score. Scores are not
+              probabilities. Both terms and timestamps are estimates.
+            </p>
+          </div>
+          <div id="empty-results" class="panel empty-results">
+            <div class="empty-graphic">
+              <span></span><span></span><span></span><span></span><span></span
+              ><span></span><span></span>
+            </div>
+            <h3>Words become moments.</h3>
+            <p>
+              Detected terms will appear on a waveform here.<br />Click a marker
+              to listen to that moment.
+            </p>
+            <div class="legend">
+              <span><i class="strong-dot"></i> Strong match</span
+              ><span><i class="possible-dot"></i> Possible match</span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <footer>
+        Keyword lab · Open source keyword spotting
+        <span>English + Russian · Local processing</span>
+      </footer>
+    </main>
+  </body>
+</html>

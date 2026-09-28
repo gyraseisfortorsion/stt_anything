@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Check for private or generated files
+        run: |
+          if git ls-files | grep -Ei '(^|/)(human_test_dataset|reports|dist|\.venv)/|(^|/)\.env(\.|$)|\.(wav|wave|mp3|m4a|ogg|opus|flac|aac|aiff|mp4|webm|npz|pt|onnx|bin|safetensors|gguf|pth|ckpt|pem|key|p12)$'; then
+            echo 'Private audio, credentials, or generated files were committed.' >&2
+            exit 1
+          fi
+
+      - name: Install locked development dependencies
+        run: uv sync --locked --extra dev
+
+      - name: Lint, type-check, and test
+        run: make check
+
+      - name: Build distributions
+        run: uv build --out-dir "$RUNNER_TEMP/stt-build"
+
+      - name: Check the installed wheel outside the repository
+        run: |
+          scratch_dir="$(mktemp -d)"
+          uv venv "$scratch_dir/venv" --python "${{ matrix.python-version }}"
+          uv pip install --python "$scratch_dir/venv/bin/python" "$RUNNER_TEMP/stt-build/"*.whl
+          cd "$scratch_dir"
+          "$scratch_dir/venv/bin/python" -c 'import stt_anything; from stt_anything import create_index, run; print(stt_anything.__file__)'
+          "$scratch_dir/venv/bin/stt-anything" --help
+          "$scratch_dir/venv/bin/python" -m stt_anything --help
