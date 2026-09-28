@@ -49,7 +49,6 @@ select = ["E", "F", "I", "UP", "B"]
 ignore = ["E501"]
 
 [tool.mypy]
-python_version = "3.11"
 files = ["stt_anything", "demo"]
 strict = true
 
